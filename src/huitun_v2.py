@@ -134,14 +134,11 @@ def get_notes_data(page):
                 if note_list:
                     normal_count = len([n for n in note_list if n.get('type') == 'normal'])
                     video_count = len([n for n in note_list if n.get('type') == 'video'])
-                    print(f"关键词搜索获取到 {len(note_list)} 条数据 (图文: {normal_count}, 视频: {video_count})")
                     for note in note_list:
                         note['source'] = 'keyword'  # 标记为关键词搜索
                     return note_list
-        print(f"请求状态码: {response.status_code}")
         return []
     except Exception as e:
-        print(f"请求失败: {str(e)}")
         return []
     
 def get_category_notes(page):
@@ -186,14 +183,11 @@ def get_category_notes(page):
                 if note_list:
                     normal_count = len([n for n in note_list if n.get('type') == 'normal'])
                     video_count = len([n for n in note_list if n.get('type') == 'video'])
-                    print(f"类目搜索获取到 {len(note_list)} 条数据 (图文: {normal_count}, 视频: {video_count})")
                     for note in note_list:
                         note['source'] = 'category'  # 标记为类目搜索
                     return note_list
-        print(f"请求状态码: {response.status_code}")
         return []
     except Exception as e:
-        print(f"请求失败: {str(e)}")
         return []
 
 def get_note_detail(note_id):
@@ -249,59 +243,13 @@ def get_note_detail(note_id):
             }
         return {}
     except Exception as e:
-        print(f"获取笔记详情失败: {str(e)}")
         return {}
     
 def process_notes_data(notes_list):
-    """处理笔记数据并转换为DataFrame格式"""
+    """处理笔记数据"""
     processed_data = []
     keyword_filtered_count = 0
     topic_filtered_count = 0
-    
-    # 导出过滤前的原始数据
-    original_notes = []
-    for note in notes_list:
-        note_id = note.get('noteId', '')
-        # 获取笔记详情以获取正确的链接
-        note_detail = get_note_detail(note_id)
-        original_note = {
-            '笔记标题': note.get('title'),
-            '关键词': note.get('keyw'),
-            '笔记ID': note_id,
-            '笔记链接': note_detail.get('noteLink', ''),
-            '点赞数': note.get('like', 0),
-            '粉丝数': note.get('fans', 0),
-            '来源': note.get('source', '')  # 添加来源字段
-        }
-        original_notes.append(original_note)
-        time.sleep(random.uniform(0.5, 1))
-
-    # 创建Excel写入器
-    timestamp = datetime.now().strftime("%H点%M分")
-    original_file = os.path.join(DATA_DIR, f'原始数据_{timestamp}.xlsx')
-    
-    # 分离关键词搜索和类目搜索的数据
-    keyword_notes = [note for note in original_notes if note.get('来源') == 'keyword']
-    category_notes = [note for note in original_notes if note.get('来源') == 'category']
-    
-    # 创建DataFrame并排序
-    keyword_df = pd.DataFrame(keyword_notes)
-    category_df = pd.DataFrame(category_notes)
-    
-    if not keyword_df.empty:
-        keyword_df = keyword_df.sort_values(by='点赞数', ascending=False)
-    if not category_df.empty:
-        category_df = category_df.sort_values(by='点赞数', ascending=False)
-    
-    # 保存到Excel的不同sheet
-    with pd.ExcelWriter(original_file, engine='openpyxl') as writer:
-        keyword_df.to_excel(writer, sheet_name='关键词搜索', index=False)
-        category_df.to_excel(writer, sheet_name='类目搜索', index=False)
-    
-    print(f"原始数据已保存到: {original_file}")
-    
-    print("\n=== 数据分析 ===")
-    print(f"获取到 {len(notes_list)} 条笔记，开始过滤...")
     
     # 1. 先进行关键词过滤
     filtered_notes = []
@@ -312,12 +260,7 @@ def process_notes_data(notes_list):
         if check_shoe_keywords(title, keywords):
             filtered_notes.append(note)
         else:
-            print(f"\n关键词过滤掉：")
-            print(f"- 标题：{note.get('title')}")
-            print(f"- 关键词：{note.get('keyw')}")
             keyword_filtered_count += 1
-    
-    print(f"关键词过滤后保留 {len(filtered_notes)} 条笔记")
     
     # 2. 获取详情并进行话题过滤
     for note in filtered_notes:
@@ -327,9 +270,6 @@ def process_notes_data(notes_list):
         
         # 检查话题标签
         if not check_shoe_topics(topics):
-            print(f"\n话题过滤掉：")
-            print(f"- 标题：{note.get('title')}")
-            print(f"- 话题：{', '.join(topics)}")
             topic_filtered_count += 1
             continue
             
@@ -360,21 +300,8 @@ def process_notes_data(notes_list):
             '是否低粉爆文': '是' if check_low_fans_hit(fans_count, like_count) else '否'
         }
         
-        # 如果是低粉爆文，打印提示
-        if check_low_fans_hit(fans_count, like_count):
-            print(f"\n发现低粉爆文：")
-            print(f"- 标题：{note.get('title')}")
-            print(f"- 粉丝数：{fans_count}")
-            print(f"- 点赞数：{like_count}")
-        
         processed_data.append(processed_note)
         time.sleep(random.uniform(0.5, 1))
-    
-    print(f"\n过滤完成：")
-    print(f"- 原始数据：{len(notes_list)} 条")
-    print(f"- 关键词过滤掉：{keyword_filtered_count} 条")
-    print(f"- 话题过滤掉：{topic_filtered_count} 条")
-    print(f"- 最终保留：{len(processed_data)} 条")
     
     # 最终结果按点赞数排序
     result_df = pd.DataFrame(processed_data)
@@ -396,11 +323,6 @@ def merge_and_deduplicate(keyword_notes, category_notes):
     # 按点赞量排序
     all_notes.sort(key=lambda x: x.get('like', 0), reverse=True)
     
-    print(f"\n=== 数据去重 ===")
-    print(f"关键词搜索: {len(keyword_notes)} 条")
-    print(f"类目搜索: {len(category_notes)} 条")
-    print(f"去重后总数: {len(all_notes)} 条")
-    
     return all_notes
 
 def main():
@@ -411,7 +333,6 @@ def main():
         # 1. 关键词搜索（1页20条）
         keyword_notes = []
         for page in range(1, 2):
-            print(f'\n正在获取关键词搜索第{page}页数据...')
             notes = get_notes_data(page)
             if notes:
                 keyword_notes.extend(notes)
@@ -421,7 +342,6 @@ def main():
         # 2. 类目搜索（1页20条）
         category_notes = []
         for page in range(1, 2):
-            print(f'\n正在获取类目搜索第{page}页数据...')
             notes = get_category_notes(page)
             if notes:
                 category_notes.extend(notes)
