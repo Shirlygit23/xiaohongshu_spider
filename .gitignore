@@ -52,4 +52,4 @@ Thumbs.db
 # Sensitive information
 config.py
 *.token
-*.cookie
+*.cookieDEVELOPMENT_NOTES.md 
