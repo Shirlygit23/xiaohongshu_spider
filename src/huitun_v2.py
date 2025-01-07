@@ -332,7 +332,7 @@ def main():
     try:
         # 1. 关键词搜索（1页20条）
         keyword_notes = []
-        for page in range(1, 2):
+        for page in range(1, 21):
             notes = get_notes_data(page)
             if notes:
                 keyword_notes.extend(notes)
@@ -341,7 +341,7 @@ def main():
         
         # 2. 类目搜索（1页20条）
         category_notes = []
-        for page in range(1, 2):
+        for page in range(1, 21):
             notes = get_category_notes(page)
             if notes:
                 category_notes.extend(notes)
