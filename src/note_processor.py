@@ -25,7 +25,6 @@ class NoteProcessor:
     def process_notes(self):
         """处理笔记数据"""
         try:
-            # 读取Excel文件
             print(f"开始读取文件: {self.excel_path}")
             df = pd.read_excel(self.excel_path)
             
@@ -34,47 +33,47 @@ class NoteProcessor:
                 print("现有的列名：", df.columns.tolist())
                 return
             
-            # 添加新列
-            df['笔记详情'] = ''
-            df['笔记话题'] = ''
+            # 确保必要的列存在
+            if '笔记详情' not in df.columns:
+                df['笔记详情'] = ''
+            if '笔记话题' not in df.columns:
+                df['笔记话题'] = ''
             
             total_notes = len(df)
-            print(f"\n共发现 {total_notes} 条笔记待处理")
+            print(f"\n共发现 {total_notes} 条笔记")
             
-            # 处理每条笔记
-            for idx, row in df.iterrows():
-                note_url = row['官方笔记地址']
-                if pd.isna(note_url):
+            # 处理笔记
+            for idx in range(total_notes):
+                # 简化判断逻辑：只有详情和话题都为空的才处理
+                detail = df.iloc[idx]['笔记详情']
+                topics = df.iloc[idx]['笔记话题']
+                
+                if not pd.isna(detail) or not pd.isna(topics):
                     continue
                 
+                note_url = df.iloc[idx]['官方笔记地址']
                 print(f"\n处理第 {idx+1}/{total_notes} 条笔记")
                 print(f"笔记地址: {note_url}")
                 
                 try:
-                    # 获取笔记内容
                     response = requests.get(note_url, headers=self.headers, timeout=10)
                     if response.status_code != 200:
                         print(f"请求失败，状态码: {response.status_code}")
                         continue
                     
-                    # 解析HTML
                     soup = BeautifulSoup(response.text, 'html.parser')
                     
-                    # 获取笔记详情和话题
                     detail_desc = soup.find(id='detail-desc')
                     hash_tags = soup.find_all(id='hash-tag')
                     
-                    # 处理笔记详情：先获取完整文本
                     if detail_desc:
                         full_text = detail_desc.text.strip()
-                        # 如果有话题标签，从详情中移除
                         if hash_tags:
                             for tag in hash_tags:
                                 tag_text = tag.text.strip()
                                 full_text = full_text.replace(tag_text, '').strip()
                         df.at[idx, '笔记详情'] = full_text
                     
-                    # 处理话题标签
                     if hash_tags:
                         tags = [tag.text.strip() for tag in hash_tags]
                         df.at[idx, '笔记话题'] = ','.join(tags)
@@ -85,23 +84,19 @@ class NoteProcessor:
                     if hash_tags:
                         print(f"话题数量: {len(tags)}")
                     
-                    # 随机延时，避免请求过快
-                    time.sleep(random.uniform(1, 3))
+                    # 每处理5条记录保存一次
+                    if (idx + 1) % 5 == 0:
+                        df.to_excel(self.excel_path, index=False)
+                    
+                    time.sleep(random.uniform(2, 4))
                     
                 except Exception as e:
                     print(f"处理笔记时出错: {str(e)}")
+                    df.to_excel(self.excel_path, index=False)
                     continue
             
-            # 保存结果
-            filename = os.path.basename(self.excel_path)
-            name_without_ext = os.path.splitext(filename)[0]
-            current_time = datetime.now().strftime('%Y%m%d_%H点%M分')
-            output_filename = f'{name_without_ext}_详情补充_{current_time}.xlsx'
-            output_path = os.path.join(self.data_dir, output_filename)
-            
-            df.to_excel(output_path, index=False)
-            print(f"\n处理完成！")
-            print(f"结果已保存至：{output_filename}")
+            df.to_excel(self.excel_path, index=False)
+            print("\n处理完成")
             
         except Exception as e:
             print(f"处理过程出错: {str(e)}")
@@ -110,7 +105,7 @@ class NoteProcessor:
 
 def main():
     """主函数"""
-    excel_path = r"C:\Users\Administrator\Desktop\code\xiaohongshu_spider\data\xiaohongshu_鞋子_20241223_16点04分 10条 .xlsx"
+    excel_path = r"C:\Users\Administrator\Desktop\code\xiaohongshu_spider\data\xiaohongshu_鞋靴_关键词和类目_20250107_22点51分 488条_详情补充_20250108_08点47分.xlsx"
     
     if not os.path.exists(excel_path):
         print(f"错误：找不到文件 {excel_path}")
