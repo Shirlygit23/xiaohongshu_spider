@@ -135,7 +135,7 @@ class ImageDownloader:
 
 def main():
     """主函数"""
-    excel_path = r"C:\Users\Administrator\Desktop\code\xiaohongshu_spider\data\xiaohongshu_鞋子_20241223_16点04分 403条.xlsx"
+    excel_path = r"C:\Users\Administrator\Desktop\code\xiaohongshu_spider\data\xiaohongshu_鞋靴_关键词和类目_20250107_22点51分 488条.xlsx"
     
     if not os.path.exists(excel_path):
         print(f"错误：找不到文件 {excel_path}")

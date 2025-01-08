@@ -655,7 +655,7 @@ def main():
         DATA_DIR = os.path.join(BASE_DIR, 'data')
         
         # 指定要分析的文件名
-        target_file = "xiaohongshu_鞋子_20241223_16点04分 403条.xlsx"
+        target_file = "xiaohongshu_鞋靴_关键词和类目_20250107_22点51分 488条.xlsx"
         excel_path = os.path.join(DATA_DIR, target_file)
         
         if not os.path.exists(excel_path):
