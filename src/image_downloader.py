@@ -6,13 +6,14 @@ import re
 from urllib.parse import unquote
 from concurrent.futures import ThreadPoolExecutor
 import time
+import random
+from config.base_config import base_config
 
 class ImageDownloader:
-    def __init__(self, excel_path):
+    def __init__(self, excel_path=None):
         """初始化下载器"""
-        self.excel_path = excel_path
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.data_dir = os.path.join(self.base_dir, 'data')
+        self.excel_path = excel_path or base_config.EXCEL_PATH
+        self.data_dir = base_config.DATA_DIR
         
     def create_save_dir(self, prefix, keyword):
         """创建保存目录"""
@@ -25,11 +26,11 @@ class ImageDownloader:
     def download_image(self, url, save_path):
         """下载单个图片"""
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(
+                url, 
+                headers=base_config.HEADERS, 
+                timeout=base_config.REQUEST_TIMEOUT
+            )
             if response.status_code == 200:
                 with open(save_path, 'wb') as f:
                     f.write(response.content)
@@ -43,7 +44,7 @@ class ImageDownloader:
     def download_images(self, filtered_df, save_dir):
         """批量下载图片"""
         success_count = 0
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=base_config.MAX_CONCURRENT_DOWNLOADS) as executor:
             for idx, row in filtered_df.iterrows():
                 cover_url = row['封面地址']
                 if pd.isna(cover_url):
@@ -58,7 +59,7 @@ class ImageDownloader:
                     success_count += 1
                 
                 # 添加延时避免请求过快
-                time.sleep(0.5)
+                time.sleep(random.uniform(*base_config.SLEEP_TIME))
         
         return success_count
 
@@ -75,7 +76,7 @@ class ImageDownloader:
             # 创建保存目录
             save_dir = self.create_save_dir('低粉豹纹封面', keyword)
             
-            # 筛选数据
+            # 使用原有的阈值
             filtered_df = df[
                 (df['粉丝数'] < 1000) & 
                 (df['互动量'] > 100)
@@ -112,8 +113,8 @@ class ImageDownloader:
             # 创建保存目录
             save_dir = self.create_save_dir('爆文封面', keyword)
             
-            # 筛选数据
-            filtered_df = df[df['点赞数'] > 1000].copy()
+            # 使用已有的爆款阈值配置
+            filtered_df = df[df['点赞数'] > base_config.TITLE_VIRAL_THRESHOLD].copy()
             
             if filtered_df.empty:
                 print("未找到爆文数据")
@@ -135,13 +136,7 @@ class ImageDownloader:
 
 def main():
     """主函数"""
-    excel_path = r"C:\Users\Administrator\Desktop\code\xiaohongshu_spider\data\xiaohongshu_鞋靴_关键词和类目_20250107_22点51分 488条.xlsx"
-    
-    if not os.path.exists(excel_path):
-        print(f"错误：找不到文件 {excel_path}")
-        return
-        
-    downloader = ImageDownloader(excel_path)
+    downloader = ImageDownloader()
     
     # 下载低粉丝数高互动的封面
     print("\n=== 开始处理低粉丝数高互动数据 ===")

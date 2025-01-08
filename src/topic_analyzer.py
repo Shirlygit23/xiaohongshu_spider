@@ -5,13 +5,13 @@ from datetime import datetime
 import re
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
+from config.base_config import base_config
 
 class TopicAnalyzer:
-    def __init__(self, excel_path):
+    def __init__(self, excel_path=None):
         """初始化分析器"""
-        self.excel_path = excel_path
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.data_dir = os.path.join(self.base_dir, 'data')
+        self.excel_path = excel_path or base_config.EXCEL_PATH
+        self.data_dir = base_config.DATA_DIR
         
     def analyze_topics(self):
         """分析话题"""
@@ -63,9 +63,9 @@ class TopicAnalyzer:
                     'min_engagement': stats['min_engagement']
                 })
             
-            # 按出现次数排序
+            # 按出现次数排序，使用配置的TOP_N值
             topic_analysis.sort(key=lambda x: x['count'], reverse=True)
-            top_50_topics = topic_analysis[:50]
+            top_topics = topic_analysis[:base_config.TOP_N_TOPICS]
             
             # 从文件名提取关键词
             filename = os.path.basename(self.excel_path)
@@ -74,17 +74,16 @@ class TopicAnalyzer:
             
             # 生成输出文件名
             current_time = datetime.now().strftime('%Y%m%d_%H点%M分')
-            output_filename = f'{keyword}_top50话题_{current_time}.xlsx'
+            output_filename = f'{keyword}_top{base_config.TOP_N_TOPICS}话题_{current_time}.xlsx'
             output_path = os.path.join(self.data_dir, output_filename)
             
             # 创建Excel文件
             wb = openpyxl.Workbook()
             ws = wb.active
-            ws.title = 'Top 50 话题'
+            ws.title = f'Top {base_config.TOP_N_TOPICS} 话题'
             
             # 写入表头
-            headers = ['话题', '出现次数', '总互动量', '平均互动量', '最高互动量', '最低互动量']
-            for col, header in enumerate(headers, 1):
+            for col, header in enumerate(base_config.TOPIC_HEADERS, 1):
                 cell = ws.cell(row=1, column=col)
                 cell.value = header
                 cell.font = Font(bold=True)
@@ -93,7 +92,7 @@ class TopicAnalyzer:
                 cell.alignment = Alignment(horizontal='center', vertical='center')
             
             # 写入数据
-            for row_idx, topic_data in enumerate(top_50_topics, 2):
+            for row_idx, topic_data in enumerate(top_topics, 2):
                 # 话题列
                 cell = ws.cell(row=row_idx, column=1)
                 cell.value = topic_data['topic']
@@ -124,13 +123,9 @@ class TopicAnalyzer:
                 cell.value = int(topic_data['min_engagement'])
                 cell.alignment = Alignment(horizontal='center', vertical='center')
             
-            # 设置固定列宽
-            ws.column_dimensions['A'].width = 25  # 话题列
-            ws.column_dimensions['B'].width = 15  # 出现次数列
-            ws.column_dimensions['C'].width = 15  # 总互动量列
-            ws.column_dimensions['D'].width = 15  # 平均互动量列
-            ws.column_dimensions['E'].width = 15  # 最高互动量列
-            ws.column_dimensions['F'].width = 15  # 最低互动量列
+            # 设置列宽
+            for col, width in base_config.TOPIC_COLUMN_WIDTHS.items():
+                ws.column_dimensions[col].width = width
             
             # 保存Excel文件
             wb.save(output_path)
@@ -139,7 +134,7 @@ class TopicAnalyzer:
             print(f"共发现 {len(topic_analysis)} 个话题标签")
             print(f"结果已保存至：{output_filename}")
             
-            return top_50_topics
+            return top_topics
             
         except Exception as e:
             print(f"分析过程出错: {str(e)}")
@@ -149,13 +144,7 @@ class TopicAnalyzer:
 
 def main():
     """主函数"""
-    excel_path = r"C:\Users\Administrator\Desktop\code\xiaohongshu_spider\data\xiaohongshu_鞋子_20241223_16点04分 403条.xlsx"
-    
-    if not os.path.exists(excel_path):
-        print(f"错误：找不到文件 {excel_path}")
-        return
-        
-    analyzer = TopicAnalyzer(excel_path)
+    analyzer = TopicAnalyzer()
     analyzer.analyze_topics()
 
 if __name__ == '__main__':

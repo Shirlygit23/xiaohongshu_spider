@@ -11,26 +11,20 @@ from openpyxl.chart.label import DataLabelList
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import matplotlib
+from config.base_config import base_config
+
 matplotlib.use('Agg')  # 使用非交互式后端
 
 class TitleAnalyzer:
     def __init__(self, df):
         """初始化分析器"""
         self.df = df
-        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
-        # 确保data目录存在
-        os.makedirs(self.data_dir, exist_ok=True)
-
+        self.data_dir = base_config.DATA_DIR
+        
     def extract_common_phrases(self, titles):
         """提取标题中的共性词组"""
-        # 相关关键词列表
-        relevant_keywords = [
-            '穿搭', '搭配', '风格', '合集', '教程', '攻略',
-            '推荐', '分享', '必入', '必备', '清单', 
-            '种草', '安利', '测评', '一周', '搭着',
-            '好看', '显瘦', '百搭', '实穿', '舒服',
-            '款式', '单品', '流行', '时尚', '潮流'
-        ]
+        # 使用配置中的关键词列表
+        relevant_keywords = base_config.TITLE_RELEVANT_KEYWORDS
         
         # 分词并统计词频
         word_freq = Counter()
@@ -91,6 +85,7 @@ class TitleAnalyzer:
                 filtered_phrases.append(p)
         
         return filtered_phrases[:10]  # 返回top 10共性词组
+
     def analyze_similar_titles(self):
         """分析相似标题"""
         print("\n=== 开始标题分析 ===")
@@ -213,11 +208,13 @@ class TitleAnalyzer:
         
         wb.save(save_path)
         print(f"\n分析结果已保存至：{filename}")
+
     def analyze_viral_patterns(self):
-        """分析爆款标题模板（点赞数 >= 1000 的标题）"""
-        VIRAL_THRESHOLD = 1000  # 定义爆款标准：点赞数 >= 1000
+        """分析爆款标题模板"""
+        # 使用配置中的爆款阈值
+        VIRAL_THRESHOLD = base_config.TITLE_VIRAL_THRESHOLD
         
-        # 首先收集所有爆款标题
+        # 收集所有爆款标题
         viral_titles = []
         for _, row in self.df.iterrows():
             title = row['笔记标题']
@@ -239,141 +236,8 @@ class TitleAnalyzer:
         all_viral_titles = [post['title'] for post in viral_titles]
         common_phrases = self.extract_common_phrases(all_viral_titles)
         
-        # 原有的模板分析逻辑
-        viral_patterns = {
-            '紧迫感': {
-                'patterns': [
-                    r'有救了.*',
-                    r'赶紧存下来.*',
-                    r'不看后悔.*',
-                    r'错过.*',
-                    r'速收藏.*',
-                    r'.*趁早.*',
-                    r'.*抓紧.*',
-                    r'.*必须收藏.*',
-                ],
-                'examples': []
-            },
-            '数字清单': {
-                'patterns': [
-                    r'^\d+[个条招式款].*',
-                    r'.*\d+个秘密.*',
-                    r'.*\d+条铁律.*',
-                    r'.*TOP\d+.*',
-                    r'.*第\d+名.*',
-                    r'.*\d+款必入.*',
-                ],
-                'examples': []
-            },
-            '强烈情感': {
-                'patterns': [
-                    r'.*真的[绝牛太好].*',
-                    r'.*绝绝子.*',
-                    r'.*爱了爱了.*',
-                    r'.*震惊.*',
-                    r'.*太太太.*',
-                    r'.*泪推.*',
-                    r'.*吹爆.*',
-                    r'.*惊艳.*',
-                    r'.*好绝.*',
-                ],
-                'examples': []
-            },
-            '独家发现': {
-                'patterns': [
-                    r'.*人不知道的.*',
-                    r'.*终于找到.*',
-                    r'.*被忽视的.*',
-                    r'.*秘密都在这.*',
-                    r'.*私藏.*',
-                    r'.*小众.*',
-                    r'.*神秘.*',
-                    r'.*发现宝藏.*',
-                ],
-                'examples': []
-            },
-            '解决痛点': {
-                'patterns': [
-                    r'.*再也不怕.*',
-                    r'.*解决困扰.*',
-                    r'.*不用愁.*',
-                    r'.*教你解决.*',
-                    r'.*完美解决.*',
-                    r'.*一次性解决.*',
-                    r'.*不用担心.*',
-                    r'.*轻松搞定.*',
-                ],
-                'examples': []
-            },
-            '热门趋势': {
-                'patterns': [
-                    r'.*爆火.*',
-                    r'.*大火.*',
-                    r'.*火遍.*',
-                    r'.*刷屏.*',
-                    r'.*爆款.*',
-                    r'.*热门.*',
-                    r'.*流行.*',
-                    r'.*出圈.*',
-                    r'.*火爆全网.*',
-                ],
-                'examples': []
-            },
-            '性价比': {
-                'patterns': [
-                    r'.*平价.*',
-                    r'.*便宜.*',
-                    r'.*白菜价.*',
-                    r'.*性价比.*',
-                    r'.*实惠.*',
-                    r'.*划算.*',
-                    r'.*省钱.*',
-                    r'.*超值.*',
-                    r'.*百元内.*',
-                ],
-                'examples': []
-            },
-            '季节热点': {
-                'patterns': [
-                    r'.*新年.*',
-                    r'.*圣诞.*',
-                    r'.*冬日.*',
-                    r'.*秋冬.*',
-                    r'.*春季.*',
-                    r'.*夏天.*',
-                    r'.*过年.*',
-                    r'.*节日.*',
-                    r'.*跨年.*',
-                ],
-                'examples': []
-            },
-            '专业测评': {
-                'patterns': [
-                    r'.*测评.*',
-                    r'.*评测.*',
-                    r'.*对比.*',
-                    r'.*分析.*',
-                    r'.*横评.*',
-                    r'.*实测.*',
-                    r'.*深度体验.*',
-                    r'.*使用感受.*',
-                ],
-                'examples': []
-            },
-            '穿搭指南': {
-                'patterns': [
-                    r'.*搭配.*',
-                    r'.*穿搭.*',
-                    r'.*穿法.*',
-                    r'.*风格.*',
-                    r'.*look.*',
-                    r'.*outfit.*',
-                    r'.*style.*',
-                    r'.*混搭.*',
-                ],
-                'examples': []
-            }
-        }
+        # 使用配置中的模板
+        viral_patterns = base_config.TITLE_PATTERNS
         
         template_stats = {
             category: {
@@ -388,8 +252,8 @@ class TitleAnalyzer:
             title = post['title']
             likes = post['likes']
             
-            for category, data in viral_patterns.items():
-                for pattern in data['patterns']:
+            for category, patterns in viral_patterns.items():
+                for pattern in patterns:
                     if re.search(pattern, title):
                         template_stats[category]['count'] += 1
                         template_stats[category]['examples'].append({
@@ -414,34 +278,30 @@ class TitleAnalyzer:
         return template_stats, template_library, common_phrases
 
     def analyze_low_follower_viral(self):
-        """分析低粉爆款笔记（点赞数>粉丝数 且 点赞数>100）"""
-        MIN_LIKES = 100  # 最低点赞数要求
-        viral_posts = []
+        """分析低粉爆款笔记"""
+        MIN_LIKES = base_config.TITLE_MIN_LIKES
         
+        viral_posts = []
         for _, row in self.df.iterrows():
             title = row['笔记标题']
             likes = row.get('点赞数', 0)
             followers = row.get('粉丝数', 0)
             
-            # 处理空值
             if pd.isna(title) or pd.isna(likes) or pd.isna(followers):
                 continue
             
-            # 转换为数值类型
             likes = float(likes) if not isinstance(likes, (int, float)) else likes
             followers = float(followers) if not isinstance(followers, (int, float)) else followers
             
-            # 判断是否为低粉爆款
             if likes > followers and likes > MIN_LIKES:
                 viral_posts.append({
                     'title': str(title),
                     'likes': likes,
                     'followers': followers,
                     'ratio': likes/followers if followers > 0 else float('inf'),
-                    'row_data': row  # 保存原始行数据
+                    'row_data': row
                 })
         
-        # 按点赞数降序排序
         viral_posts.sort(key=lambda x: x['likes'], reverse=True)
         return viral_posts
 
@@ -453,7 +313,7 @@ class TitleAnalyzer:
             
         current_time = datetime.now().strftime('%Y%m%d_%H点%M分')
         count = len(viral_posts)
-        filename = f'xiaohongshu_{keyword}_{current_time} {count}条.xlsx'  # 修改为与源文件相同的格式
+        filename = f'xiaohongshu_{keyword}_{current_time} {count}条.xlsx'
         save_path = os.path.join(self.data_dir, filename)
         
         wb = openpyxl.Workbook()
@@ -461,7 +321,7 @@ class TitleAnalyzer:
         ws.title = '低粉爆款分析'
         
         # 添加判断标准说明
-        ws['A1'] = "判断标准：点赞数>粉丝数 且 点赞数>100"
+        ws['A1'] = f"判断标准：点赞数>粉丝数 且 点赞数>{base_config.TITLE_MIN_LIKES}"
         ws['A1'].font = Font(bold=True)
         ws.merge_cells(f'A1:{openpyxl.utils.get_column_letter(len(self.df.columns))}1')
         
@@ -486,7 +346,7 @@ class TitleAnalyzer:
                 if col_idx == 1:  # 假设标题是第一列
                     cell.alignment = Alignment(vertical='center', wrap_text=True)
         
-        # 自动调整列宽（修复后的版本）
+        # 自动调整列宽
         for col_idx in range(1, len(headers) + 1):
             max_length = 0
             for row_idx in range(2, len(viral_posts) + 3):  # 从表头开始，包括数据行
@@ -516,7 +376,7 @@ class TitleAnalyzer:
         ws_common.title = '爆款共性词分析'
         
         # 添加判断标准说明
-        ws_common['A1'] = "判断标准：点赞数 >= 1000"
+        ws_common['A1'] = f"判断标准：点赞数 >= {base_config.TITLE_VIRAL_THRESHOLD}"
         ws_common['A1'].font = Font(bold=True)
         ws_common.merge_cells('A1:C1')
         
@@ -547,7 +407,7 @@ class TitleAnalyzer:
         ws_analysis = wb.create_sheet(title='爆款标题分析')
         
         # 添加判断标准说明
-        ws_analysis['A1'] = "判断标准：点赞数 >= 1000"
+        ws_analysis['A1'] = f"判断标准：点赞数 >= {base_config.TITLE_VIRAL_THRESHOLD}"
         ws_analysis['A1'].font = Font(bold=True)
         ws_analysis.merge_cells('A1:D1')
         
@@ -578,7 +438,7 @@ class TitleAnalyzer:
         ws_templates = wb.create_sheet(title='标题模板库')
         
         # 添加判断标准说明到模板库页
-        ws_templates['A1'] = "判断标准：点赞数 >= 1000"
+        ws_templates['A1'] = f"判断标准：点赞数 >= {base_config.TITLE_VIRAL_THRESHOLD}"
         ws_templates['A1'].font = Font(bold=True)
         ws_templates.merge_cells('A1:D1')
         
@@ -651,12 +511,9 @@ class TitleAnalyzer:
 def main():
     """主函数"""
     try:
-        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        DATA_DIR = os.path.join(BASE_DIR, 'data')
-        
         # 指定要分析的文件名
-        target_file = "xiaohongshu_鞋靴_关键词和类目_20250107_22点51分 488条.xlsx"
-        excel_path = os.path.join(DATA_DIR, target_file)
+        target_file = base_config.EXCEL_FILENAME
+        excel_path = base_config.EXCEL_PATH
         
         if not os.path.exists(excel_path):
             print(f"错误：找不到文件 {target_file}")
