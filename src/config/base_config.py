@@ -171,6 +171,11 @@ class BaseConfig:
         self.IMAGE_FORMATS = ['.jpg', '.jpeg', '.png', '.gif']  # 支持的图片格式
         self.MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 最大图片大小（10MB）
         self.IMAGE_TIMEOUT = 30  # 图片下载超时时间
+
+        # 图片下载筛选阈值
+        self.IMAGE_VIRAL_THRESHOLD = 1000  # 爆文点赞数阈值
+        self.IMAGE_LOW_FANS_THRESHOLD = 1000  # 低粉丝数阈值
+        self.IMAGE_HIGH_INTERACTION_THRESHOLD = 100  # 高互动量阈值
         
         # 日志配置
         self.LOG_FILENAME = 'processor.log'
